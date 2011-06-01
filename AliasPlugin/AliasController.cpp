@@ -370,17 +370,14 @@ BOOL AliasController::IsModKeysDown(void)
 		}
 
 		if (m_ctrl && !IsKeyDown(VK_CONTROL)) {
-			OutputDebugString(_T("Control RETRY\n"));
 			sleepInterval *= 2;
 			continue;
 		}
 		if (m_alt && !IsKeyDown(VK_MENU)) {
-			OutputDebugString(_T("Alt RETRY\n"));
 			sleepInterval *= 2;
 			continue;
 		}
 		if (m_shift && !IsKeyDown(VK_SHIFT)) {
-			OutputDebugString(_T("Shift RETRY\n"));
 			sleepInterval *= 2;
 			continue;
 		}
@@ -398,9 +395,7 @@ BOOL AliasController::IsModKeysDown(void)
 
 void AliasController::ModKeyDown(void)
 {
-	OutputDebugString(_T("ModKeyDown\n"));
 	if (!m_bSyskeyDown) {
-		OutputDebugString(_T("TRY\n"));
 		DWORD dwBuf = 0;
 		HWND hForeground = GetForegroundWindow();
 
@@ -429,19 +424,15 @@ void AliasController::ModKeyDown(void)
 
 		m_bSyskeyDown = IsModKeysDown();
 		if (!m_bSyskeyDown) {
-			OutputDebugString(_T("TIMEOUT\n"));
 			TCHAR szError[BUFFER_SIZE];
 			_stprintf_s(szError, _countof(szError), _T("修飾キーが押されませんでした[タイムアウト]。") );
 			LogDebugMessage(Log_Error, szError);
 		}
-	} else {
-		OutputDebugString(_T("PRESSED\n"));
 	}
 }
 
 void AliasController::ModKeyUp(void)
 {
-	OutputDebugString(_T("ModKeyUp\n"));
 	if (m_bSyskeyDown) {
 		if (!SetForegroundWindow(m_hTargetTopWnd)) {
 			OutputDebugString(_T("SetForegroundWindow -> FALSE\n"));
