@@ -193,6 +193,7 @@ void AliasController::Execute(LPCSTR szCommand, double deltaX, double deltaY)
 	HWND tmpWnd = GetForegroundWindow();
 	if (tmpWnd != m_hTargetTopWnd) {
 		m_hTargetTopWnd = tmpWnd;
+		return;
 	}
 
 	// 実際に仮想キー・仮想マウス操作を行う子ウィンドウの取得
@@ -385,10 +386,8 @@ BOOL AliasController::IsModKeysDown(void)
 	}
 
 	if (i < retryCount) {
-		m_bSyskeyDown = TRUE;
 		return TRUE;
 	} else {
-		m_bSyskeyDown = FALSE;
 		return FALSE;
 	}
 }

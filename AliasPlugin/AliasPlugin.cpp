@@ -199,7 +199,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 	static AliasController controller;
 	static SOCKET socketHandler = INVALID_SOCKET;
-	char buffer[BUFFER_SIZE*2] = {0};
+	char buffer[BUFFER_SIZE*4] = {0};
 	char szCommand[BUFFER_SIZE] = {0};
 	double deltaX = 0;
 	double deltaY = 0;
@@ -231,6 +231,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			if (scanCount == 3) {
 				counter = 0;
 				controller.Execute(szCommand, deltaX, deltaY);
+				Sleep(1);
 				doCount = TRUE;
 
 			} else if (scanCount == 1) {
