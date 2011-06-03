@@ -9,7 +9,7 @@ public:
 	~AliasController(void);
 
 	BOOL Initialize(LPCSTR szBuffer, char* termination);
-	void Execute(LPCSTR szCommand, double deltaX, double deltaY);
+	void Execute(HWND hWnd, LPCSTR szCommand, double deltaX, double deltaY);
 	void ModKeyUp(void);
 
 private:
@@ -21,7 +21,7 @@ private:
 
 	BOOL InitializeModifierKeys(PCSTR szModifierKeys);
 	BOOL GetTargetChildWnd(void);
-	BOOL CheckTargetState(void);
+	BOOL CheckTargetState(int deltaX, int deltaY);
 	void ModKeyDown(void);
 	BOOL IsModKeysDown(void);
 

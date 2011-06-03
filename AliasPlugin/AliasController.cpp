@@ -142,6 +142,7 @@ BOOL AliasController::InitializeModifierKeys(PCSTR szModifierKeys)
 BOOL AliasController::GetTargetChildWnd(void)
 {
 	m_hKeyInputWnd = m_hTargetTopWnd;
+	m_hMouseInputWnd = NULL;
 	EnumChildWindows(m_hKeyInputWnd, EnumChildProcForMouseInput, (LPARAM)&m_hMouseInputWnd);
 	if (m_hMouseInputWnd == NULL) {
 		return FALSE;
@@ -149,7 +150,7 @@ BOOL AliasController::GetTargetChildWnd(void)
 	return TRUE;
 }
 
-BOOL AliasController::CheckTargetState(void)
+BOOL AliasController::CheckTargetState(int deltaX, int deltaY)
 {
 	if (m_hTargetTopWnd == NULL) {
 		//ReportError(_T("ターゲットウィンドウが取得できません。<AliasController::CheckTargetState>"));
@@ -170,7 +171,8 @@ BOOL AliasController::CheckTargetState(void)
 		GetWindowRect(m_hMouseInputWnd, &windowRect);
 		if (WindowFromPoint(tmpCurrentPos) != m_hMouseInputWnd ||
 			tmpCurrentPos.x < windowRect.left+200 || windowRect.right-500 < tmpCurrentPos.x ||
-			tmpCurrentPos.y < windowRect.top || windowRect.bottom < tmpCurrentPos.y) {
+			tmpCurrentPos.y < windowRect.top+200 || windowRect.bottom < tmpCurrentPos.y ||
+			windowRect.right-500 < tmpCurrentPos.x+deltaX || tmpCurrentPos.y+deltaY < windowRect.top+200) {
 				if (m_mouseMessage.dragButton != DragNONE) {
 					VMMouseClick(&m_mouseMessage, TRUE);
 					m_mouseMessage.dragButton = DragNONE;
@@ -188,13 +190,9 @@ BOOL AliasController::CheckTargetState(void)
 }
 
 
-void AliasController::Execute(LPCSTR szCommand, double deltaX, double deltaY)
+void AliasController::Execute(HWND hWnd, LPCSTR szCommand, double deltaX, double deltaY)
 {
-	HWND tmpWnd = GetForegroundWindow();
-	if (tmpWnd != m_hTargetTopWnd) {
-		m_hTargetTopWnd = tmpWnd;
-		return;
-	}
+	m_hTargetTopWnd = hWnd;
 
 	// 実際に仮想キー・仮想マウス操作を行う子ウィンドウの取得
 	if (!GetTargetChildWnd()) {
@@ -242,7 +240,7 @@ void AliasController::TumbleExecute(int deltaX, int deltaY)
 		}
 	}
 
-	if (!CheckTargetState()) {
+	if (!CheckTargetState(deltaX, deltaY)) {
 		return;
 	}
 	m_mouseMessage.bUsePostMessage	= m_bUsePostMessageToMouseDrag;
@@ -275,7 +273,7 @@ void AliasController::TrackExecute(int deltaX, int deltaY)
 			m_mouseMessage.dragButton = DragNONE;
 		}
 	}
-	if (!CheckTargetState()) {
+	if (!CheckTargetState(deltaX, deltaY)) {
 		return;
 	}
 	m_mouseMessage.bUsePostMessage	= m_bUsePostMessageToMouseDrag;
@@ -308,7 +306,7 @@ void AliasController::DollyExecute(int deltaX, int deltaY)
 		}
 	}
 
-	if (!CheckTargetState()) {
+	if (!CheckTargetState(deltaX, deltaY)) {
 		return;
 	}
 	m_mouseMessage.bUsePostMessage	= m_bUsePostMessageToMouseDrag;
@@ -395,19 +393,19 @@ BOOL AliasController::IsModKeysDown(void)
 void AliasController::ModKeyDown(void)
 {
 	if (!m_bSyskeyDown) {
-		DWORD dwBuf = 0;
-		HWND hForeground = GetForegroundWindow();
+		//DWORD dwBuf = 0;
+		//HWND hForeground = GetForegroundWindow();
 
-		DWORD dwThreadId = GetWindowThreadProcessId(hForeground, NULL);
-		DWORD dwTargetThreadId = GetWindowThreadProcessId(m_hKeyInputWnd, NULL);
+		//DWORD dwThreadId = GetWindowThreadProcessId(hForeground, NULL);
+		//DWORD dwTargetThreadId = GetWindowThreadProcessId(m_hKeyInputWnd, NULL);
 
-		AttachThreadInput(dwTargetThreadId, dwThreadId, TRUE);
+		//AttachThreadInput(dwTargetThreadId, dwThreadId, TRUE);
 
-		SystemParametersInfo(SPI_GETFOREGROUNDLOCKTIMEOUT, 0, &dwBuf, 0);
-		SystemParametersInfo(SPI_SETFOREGROUNDLOCKTIMEOUT, 0, NULL, 0);
+		//SystemParametersInfo(SPI_GETFOREGROUNDLOCKTIMEOUT, 0, &dwBuf, 0);
+		//SystemParametersInfo(SPI_SETFOREGROUNDLOCKTIMEOUT, 0, NULL, 0);
 
-		SetForegroundWindow(m_hTargetTopWnd);
-		Sleep(m_millisecSleepAfterKeyDown);
+		//SetForegroundWindow(m_hTargetTopWnd);
+		//Sleep(m_millisecSleepAfterKeyDown);
 
 		if (m_ctrl) {
 			VMVirtualKeyDown(m_hMouseInputWnd, VK_CONTROL, m_bUsePostMessageToSendKey);
@@ -418,8 +416,8 @@ void AliasController::ModKeyDown(void)
 		if (m_shift) {
 			VMVirtualKeyDown(m_hMouseInputWnd, VK_SHIFT, m_bUsePostMessageToSendKey);
 		}
-		SystemParametersInfo(SPI_SETFOREGROUNDLOCKTIMEOUT, 0, &dwBuf, 0);
-		AttachThreadInput(dwThreadId, dwTargetThreadId, FALSE);
+		//SystemParametersInfo(SPI_SETFOREGROUNDLOCKTIMEOUT, 0, &dwBuf, 0);
+		//AttachThreadInput(dwThreadId, dwTargetThreadId, FALSE);
 
 		m_bSyskeyDown = IsModKeysDown();
 		if (!m_bSyskeyDown) {
