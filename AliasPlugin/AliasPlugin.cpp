@@ -28,7 +28,6 @@ BOOL				InitInstance(HINSTANCE, int);
 LRESULT CALLBACK	WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK	About(HWND, UINT, WPARAM, LPARAM);
 
-//static int AnalyzeMessage(LPCSTR szMessage, LPSTR szCommand, SIZE_T size, double* pDeltaX, double* pDeltaY, char cTermination);
 static int AnalyzeMessage(I4C3DUDPPacket* pPacket, HWND* pHWnd, LPSTR szCommand, SIZE_T size, double* pDeltaX, double* pDeltaY, char cTermination);
 
 static SOCKET InitializeController(HWND hWnd, USHORT uPort);
@@ -197,6 +196,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	const int timer_interval = 100;
 	static DWORD counter = 0;
 	static BOOL doCount = FALSE;
+	static BOOL executing = FALSE;
 
 	static AliasController controller;
 	static SOCKET socketHandler = INVALID_SOCKET;
@@ -232,8 +232,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			int scanCount = AnalyzeMessage(&packet, &hTargetWnd, szCommand, _countof(szCommand), &deltaX, &deltaY, cTermination);
 			if (scanCount == 3) {
 				counter = 0;
+				executing = TRUE;
 				controller.Execute(hTargetWnd, szCommand, deltaX, deltaY);
 				Sleep(1);
+				executing = FALSE;
 				doCount = TRUE;
 
 			} else if (scanCount == 1) {
@@ -253,7 +255,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	case WM_TIMER:
 		if (doCount) {
 			counter += timer_interval;
-			if (300 < counter) {
+			if (200 < counter && !executing) {
 				controller.ModKeyUp();
 				doCount = FALSE;
 			}
