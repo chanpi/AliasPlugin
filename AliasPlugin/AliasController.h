@@ -21,7 +21,8 @@ private:
 
 	BOOL InitializeModifierKeys(PCSTR szModifierKeys);
 	BOOL GetTargetChildWnd(void);
-	BOOL CheckTargetState(int deltaX, int deltaY);
+	BOOL CheckTargetState(void);
+	void AdjustCursorPos(int deltaX, int deltaY);
 	void ModKeyDown(void);
 	BOOL IsModKeysDown(void);
 
@@ -39,7 +40,6 @@ private:
 	BOOL m_bSyskeyDown;
 	int m_DisplayWidth;
 	int m_DisplayHeight;
-	DWORD m_millisecSleepAfterKeyDown;
 	double m_fTumbleRate;
 	double m_fTrackRate;
 	double m_fDollyRate;

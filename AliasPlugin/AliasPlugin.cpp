@@ -28,7 +28,6 @@ BOOL				InitInstance(HINSTANCE, int);
 LRESULT CALLBACK	WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK	About(HWND, UINT, WPARAM, LPARAM);
 
-//static int AnalyzeMessage(LPCSTR szMessage, LPSTR szCommand, SIZE_T size, double* pDeltaX, double* pDeltaY, char cTermination);
 static int AnalyzeMessage(I4C3DUDPPacket* pPacket, HWND* pHWnd, LPSTR szCommand, SIZE_T size, double* pDeltaX, double* pDeltaY, char cTermination);
 
 static SOCKET InitializeController(HWND hWnd, USHORT uPort);
@@ -56,16 +55,16 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 
 	MyRegisterClass(hInstance);
 
-	//int argc = 0;
-	//LPTSTR *argv = NULL;
-	//argv = CommandLineToArgvW(GetCommandLine(), &argc);
-	//if (argc != 2) {
-	//	MessageBox(NULL, _T("[ERROR] à¯êîÇ™ë´ÇËÇ‹ÇπÇÒ[ó·: AliasPlugin.exe 10001]ÅB<AliasPlugin>"), szTitle, MB_OK | MB_ICONERROR);
-	//}
-	//g_uPort = static_cast<USHORT>(_wtoi(argv[1]));
-	//OutputDebugString(argv[1]);
-	//LocalFree(argv);
-	g_uPort = 10003;
+	int argc = 0;
+	LPTSTR *argv = NULL;
+	argv = CommandLineToArgvW(GetCommandLine(), &argc);
+	if (argc != 2) {
+		MessageBox(NULL, _T("[ERROR] à¯êîÇ™ë´ÇËÇ‹ÇπÇÒ[ó·: AliasPlugin.exe 10001]ÅB<AliasPlugin>"), szTitle, MB_OK | MB_ICONERROR);
+	}
+	g_uPort = static_cast<USHORT>(_wtoi(argv[1]));
+	OutputDebugString(argv[1]);
+	LocalFree(argv);
+	//g_uPort = 10003;
 
 	static WSAData wsaData;
 	WORD wVersion;
@@ -197,6 +196,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	const int timer_interval = 100;
 	static DWORD counter = 0;
 	static BOOL doCount = FALSE;
+	static BOOL executing = FALSE;
 
 	static AliasController controller;
 	static SOCKET socketHandler = INVALID_SOCKET;
@@ -232,8 +232,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			int scanCount = AnalyzeMessage(&packet, &hTargetWnd, szCommand, _countof(szCommand), &deltaX, &deltaY, cTermination);
 			if (scanCount == 3) {
 				counter = 0;
+				executing = TRUE;
 				controller.Execute(hTargetWnd, szCommand, deltaX, deltaY);
 				Sleep(1);
+				executing = FALSE;
 				doCount = TRUE;
 
 			} else if (scanCount == 1) {
@@ -253,7 +255,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	case WM_TIMER:
 		if (doCount) {
 			counter += timer_interval;
-			if (300 < counter) {
+			if (cancelKeyDownMillisec < counter && !executing) {
 				controller.ModKeyUp();
 				doCount = FALSE;
 			}
