@@ -21,7 +21,7 @@ private:
 
 	BOOL InitializeModifierKeys(PCSTR szModifierKeys);
 	BOOL GetTargetChildWnd(void);
-	BOOL CheckTargetState(void);
+	//BOOL CheckTargetState(void);
 	void AdjustCursorPos(int deltaX, int deltaY);
 	void ModKeyDown(void);
 	BOOL IsModKeysDown(void);
