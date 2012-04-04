@@ -4,9 +4,9 @@
 #include "stdafx.h"
 #include "AliasPlugin.h"
 #include "AliasController.h"
-#include "Miscellaneous.h"
+#include "Misc.h"
 #include "I4C3DCommon.h"
-#include "ErrorCodeList.h"
+#include "SharedConstants.h"
 #include <WinSock2.h>
 #include <ShellAPI.h>
 
@@ -19,6 +19,12 @@
 #define new  ::new( _NORMAL_BLOCK, __FILE__, __LINE__ )
 #endif
 
+#if UNICODE || _UNICODE
+static LPCTSTR g_FILE = __FILEW__;
+#else
+static LPCTSTR g_FILE = __FILE__;
+#endif
+
 #define MAX_LOADSTRING	100
 #define TIMER_ID		1
 
@@ -26,6 +32,7 @@ const int BUFFER_SIZE = 256;
 static const PCSTR COMMAND_INIT	= "init";
 static const PCSTR COMMAND_EXIT	= "exit";
 static const PCSTR COMMAND_REGISTERMACRO	= "registermacro";
+static const PCTSTR g_szExecutableOption	= _T("-run");
 
 // グローバル変数:
 HINSTANCE hInst;								// 現在のインターフェイス
@@ -71,27 +78,27 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 #else
 	logLevel = Log_Error;
 #endif
-	if (!LogFileOpenW("Alias", logLevel)) {
-		//ReportError(_T("Aliasのログは出力されません。"));
+	if (!LogFileOpenW(SHARED_LOG_FILE_NAME, logLevel)) {
 	}
-	LogDebugMessage(Log_Debug, _T("Alias log file opened."));
+
+	LoggingMessage(Log_Debug, _T(MESSAGE_DEBUG_LOG_OPEN), GetLastError(), g_FILE, __LINE__);
 
 	int argc = 0;
 	LPTSTR *argv = NULL;
 	argv = CommandLineToArgvW(GetCommandLine(), &argc);
 	if (argc < 3) {	// 最後の引数はランチャーからもらう"-run"
-		LogDebugMessage(Log_Error, _T("[ERROR] 引数が足りません[例: AliasPlugin.exe 10003]。<AliasPlugin>"));
+		LoggingMessage(Log_Error, _T(MESSAGE_ERROR_PLUGIN_ARGUMENT), GetLastError(), g_FILE, __LINE__);
 		LocalFree(argv);
 		LogFileCloseW();
 		return EXIT_NO_ARGUMENTS;
 	}
-	if (0 != _tcsicmp(argv[2], _T("-run"))) {
-		LogDebugMessage(Log_Error, _T("起動オプションがありません。このアプリケーションはランチャーから起動される必要があります。"));
+	if (0 != _tcsicmp(argv[2], g_szExecutableOption)) {
+		LoggingMessage(Log_Error, _T(MESSAGE_ERROR_PLUGIN_OPTION), GetLastError(), g_FILE, __LINE__);
 		LocalFree(argv);
 		LogFileCloseW();
 		return EXIT_NOT_EXECUTABLE;
 	}
-
+	
 	g_uPort = static_cast<USHORT>(_tstoi(argv[1]));
 	OutputDebugString(argv[1]);
 	LocalFree(argv);
@@ -103,12 +110,12 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 	wVersion = MAKEWORD(2,2);
 	nResult = WSAStartup(wVersion, &wsaData);
 	if (nResult != 0) {
-		LogDebugMessage(Log_Error, _T("[ERROR] Initialize Winsock."));
+		LoggingMessage(Log_Error, _T(MESSAGE_ERROR_SOCKET_INVALID), GetLastError(), g_FILE, __LINE__);		
 		LogFileCloseW();
 		return EXIT_SOCKET_ERROR;
 	}
 	if (wsaData.wVersion != wVersion) {
-		LogDebugMessage(Log_Error, _T("[ERROR] Winsock バージョン."));
+		LoggingMessage(Log_Error, _T(MESSAGE_ERROR_SOCKET_INVALID), GetLastError(), g_FILE, __LINE__);		
 		WSACleanup();
 		LogFileCloseW();
 		return EXIT_SOCKET_ERROR;
@@ -136,7 +143,6 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 
 	WSACleanup();
 	LogFileCloseW();
-	LogDebugMessage(Log_Debug, _T("Alias log file closed."));
 	return (int) msg.wParam;
 }
 
@@ -236,8 +242,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	static char cTermination = '?';
 
 	int nBytes = 0;
-	TCHAR szError[BUFFER_SIZE] = {0};
-
+	
 	switch (message)
 	{
 	case WM_CREATE:
@@ -254,10 +259,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		case FD_READ:
 			nBytes = recv(socketHandler, (char*)&packet, sizeof(packet), 0);
 			if (nBytes == SOCKET_ERROR) {
-				_stprintf_s(szError, _countof(szError), _T("recv() : %d <AliasPlugin>"), WSAGetLastError());
-				LogDebugMessage(Log_Error, szError);
+				LoggingMessage(Log_Error, _T(MESSAGE_ERROR_SOCKET_RECV), GetLastError(), g_FILE, __LINE__);	
 				break;
-
 			}
 
 			HWND hTargetWnd = 0;
@@ -273,8 +276,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			} else if (scanCount == 1) {
 				if (_strcmpi(szCommand, COMMAND_INIT) == 0) {
 					if (!controller.Initialize(packet.szCommand, &cTermination)) {
-						_stprintf_s(szError, _countof(szError), _T("Aliasプラグインの初期化に失敗しています。"));
-						LogDebugMessage(Log_Error, szError);
+						LoggingMessage(Log_Error, _T(MESSAGE_ERROR_PLUGIN_INIT), GetLastError(), g_FILE, __LINE__);	
 					}
 				} else if (_strcmpi(szCommand, COMMAND_EXIT) == 0) {
 					OutputDebugString(_T("exit\n"));
@@ -283,8 +285,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				// マクロの登録
 				} else if (_strcmpi(szCommand, COMMAND_REGISTERMACRO) == 0) {
 					if (!controller.RegisterMacro(packet.szCommand, &cTermination)) {
-						_stprintf_s(szError, _countof(szError), _T("Aliasプラグインのマクロの登録に失敗しています。"));
-						LogDebugMessage(Log_Error, szError);
+						LoggingMessage(Log_Error, _T(MESSAGE_ERROR_PLUGIN_INIT), GetLastError(), g_FILE, __LINE__);	
 					}
 
 				// マクロの実行
@@ -371,13 +372,11 @@ SOCKET InitializeController(HWND hWnd, USHORT uPort)
 {
 	SOCKET socketHandler;
 	SOCKADDR_IN address;
-	TCHAR szError[BUFFER_SIZE];
 	int nResult = 0;
 
 	socketHandler = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 	if (socketHandler == INVALID_SOCKET) {
-		_stprintf_s(szError, _countof(szError), _T("[ERROR] socket() : %d"), WSAGetLastError());
-		LogDebugMessage(Log_Error, szError);
+		LoggingMessage(Log_Error, _T(MESSAGE_ERROR_SOCKET_INVALID), GetLastError(), g_FILE, __LINE__);
 		return INVALID_SOCKET;
 	}
 
@@ -387,15 +386,13 @@ SOCKET InitializeController(HWND hWnd, USHORT uPort)
 
 	nResult = bind(socketHandler, (const SOCKADDR*)&address, sizeof(address));
 	if (nResult == SOCKET_ERROR) {
-		_stprintf_s(szError, _countof(szError), _T("[ERROR] bind() : %d"), WSAGetLastError());
-		LogDebugMessage(Log_Error, szError);
+		LoggingMessage(Log_Error, _T(MESSAGE_ERROR_SOCKET_BIND), GetLastError(), g_FILE, __LINE__);	
 		closesocket(socketHandler);
 		return INVALID_SOCKET;
 	}
 
 	if (WSAAsyncSelect(socketHandler, hWnd, MY_WINSOCKSELECT, FD_READ) == SOCKET_ERROR) {
-		TCHAR* szError = _T("ソケットイベント通知設定に失敗しました。<AliasPlugin::InitializeController>");
-		LogDebugMessage(Log_Error, szError);
+		LoggingMessage(Log_Error, _T(MESSAGE_ERROR_SOCKET_EVENT), GetLastError(), g_FILE, __LINE__);
 		closesocket(socketHandler);
 		return INVALID_SOCKET;
 	}

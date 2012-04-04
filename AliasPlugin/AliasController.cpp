@@ -2,9 +2,16 @@
 #include "AliasController.h"
 #include "I4C3DKeysHook.h"
 #include "I4C3DCommon.h"
-#include "Miscellaneous.h"
+#include "Misc.h"
+#include "SharedConstants.h"
 #include <math.h>
 #include <float.h>
+
+#if UNICODE || _UNICODE
+static LPCTSTR g_FILE = __FILEW__;
+#else
+static LPCTSTR g_FILE = __FILE__;
+#endif
 
 extern const int BUFFER_SIZE = 256;
 
@@ -152,7 +159,7 @@ BOOL AliasController::GetTargetChildWnd(void)
 	m_hMouseInputWnd = NULL;
 	EnumChildWindows(m_hKeyInputWnd, EnumChildProcForMouseInput, (LPARAM)&m_hMouseInputWnd);
 	if (m_hMouseInputWnd == NULL) {
-		LogDebugMessage(Log_Error, _T("マウス入力ウィンドウが取得できません。<AliasController::GetTargetChildWnd>"));
+		LoggingMessage(Log_Error, _T(MESSAGE_ERROR_WINDOW_MISSING), GetLastError(), g_FILE, __LINE__);	
 		return FALSE;
 	}
 	return TRUE;
