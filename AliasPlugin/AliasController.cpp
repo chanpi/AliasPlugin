@@ -85,8 +85,8 @@ BOOL AliasController::Initialize(LPCSTR szBuffer, char* termination)
 	}
 
 	{
-		TCHAR szBuf[32];
-		_stprintf_s(szBuf, 32, _T("tum:%.2f, tra:%.2f dol:%.2f\n"), m_fTumbleRate, m_fTrackRate, m_fDollyRate);
+		TCHAR szBuf[64] = {0};
+		_stprintf_s(szBuf, _countof(szBuf), _T("tum:%.2f, tra:%.2f dol:%.2f\n"), m_fTumbleRate, m_fTrackRate, m_fDollyRate);
 		OutputDebugString(szBuf);
 	}
 
@@ -193,7 +193,7 @@ void AliasController::AdjustCursorPos(int deltaX, int deltaY)
 	POINT tmpCurrentPos = m_currentPos;
 	ClientToScreen(m_hMouseInputWnd, &tmpCurrentPos);
 
-	RECT windowRect;
+	RECT windowRect = {0};
 	GetWindowRect(m_hMouseInputWnd, &windowRect);
 
 	if (WindowFromPoint(tmpCurrentPos) != m_hMouseInputWnd ||
@@ -205,7 +205,7 @@ void AliasController::AdjustCursorPos(int deltaX, int deltaY)
 				m_mouseMessage.dragButton = DragNONE;
 			}
 
-			RECT rect;
+			RECT rect = {0};
 			GetClientRect(m_hMouseInputWnd, &rect);
 			m_currentPos.x = rect.left + (rect.right - rect.left) / 2;
 			m_currentPos.y = rect.top + (rect.bottom - rect.top) / 2;
@@ -464,7 +464,7 @@ void AliasController::ModKeyUp(void)
 
 BOOL CALLBACK EnumChildProcForMouseInput(HWND hWnd, LPARAM lParam)
 {
-	TCHAR szWindowTitle[BUFFER_SIZE];
+	TCHAR szWindowTitle[BUFFER_SIZE] = {0};
 	GetWindowText(hWnd, szWindowTitle, _countof(szWindowTitle));
 	if (!_tcsicmp(g_szChildWindowTitle, szWindowTitle)) {
 		*(HWND*)lParam = hWnd;
